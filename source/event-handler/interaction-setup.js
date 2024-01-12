@@ -51,7 +51,7 @@ module.exports = {
 
             const embed = new EmbedBuilder()
               .setColor('#2ecc71')
-              .setDescription(`**Token Creation & Overview**\n For those interested in upgrading to our more advanced tooling, the payment __must__ be done before installation, the base version is free.\n\n**Additional Information**\nSelect the upgrade button below for those who want our premium version. After the payment, press it again for a seamless transition.\n\n__Premium temporarily disabled.__ \n\n**[Partnership & Information](https://www.nitrado-aff.com/2M731JR/D42TT/ \"Nitrado Partner Link\")**\nConsider using our partnership link to purchase your personal servers to help fund our services!`)
+              .setDescription(`**Token Creation & Overview**\n For those interested in upgrading to our more advanced tooling, the payment __must__ be done before installation, the base version is free.\n\n**Additional Information**\nSelect the upgrade button below for those who want our premium version. After the payment, press it again for a seamless transition.\n\n__Premium temporarily disabled.__ \n\n**[Partnership & Information](https://nitra.do/obeliskdevelopment "Nitrado Partner Link")**\nConsider using our partnership link to purchase your personal servers to help fund our services!`)
               .setFooter({ text: 'Tip: Contact support if there are issues.' })
               .setImage('https://i.imgur.com/2ZIHUgx.png')
 
@@ -73,16 +73,21 @@ module.exports = {
         }
 
         if (interaction.customId === 'base-version') {
-          const installation = await interaction.reply({ content: 'Installation starting...', ephemeral: true })
+          console.log(interaction)
+          const installation = await interaction.reply({ content: 'Installing...', ephemeral: true })
 
           const roles = await interaction.guild.roles.fetch();
           const action = roles.map(async role => role.name === 'Obelisk Permission' ? await role.delete() : null);
-          try { await Promise.all(action) } catch (error) { return await installation.edit({ content: 'In your settings, move the bot above the permission role.', ephemeral: true }) };
+          try { await Promise.all(action) } catch (error) { return await installation.edit({ content: 'In your settings, move the bot role above the newly generated permission role.', ephemeral: true }) };
+
+          await installation.edit({ content: 'Setting permissions...', ephemeral: true })
 
           await interaction.guild.roles.create({
             name: 'Obelisk Permission',
             color: '#2ecc71',
           }).then(() => console.log('Role created...'));
+
+          await installation.edit({ content: 'Setting channels...', ephemeral: true })
 
           const permissions = [{
             id: interaction.guild.id,
@@ -198,7 +203,9 @@ module.exports = {
               ['logging']: { admin: admin.id, chat: chat.id }
             }, { merge: true });
 
-          await installation.edit({ content: 'Installation finished...', ephemeral: true })
+          setTimeout(() => { }, 5000); // Add later ~
+          await installation.edit({ content: 'Setting additional safeguards...', ephemeral: true })
+          await installation.edit({ content: 'Installation finished!', ephemeral: true })
         }
       } catch (error) { console.log(error) };
     });
