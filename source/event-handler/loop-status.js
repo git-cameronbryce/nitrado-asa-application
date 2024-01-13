@@ -1,4 +1,4 @@
-const { Events, Embed, EmbedBuilder } = require('discord.js');
+const { ActionRowBuilder, Events, EmbedBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { db } = require('../script');
 const axios = require('axios');
 
@@ -32,7 +32,7 @@ module.exports = {
             .sort((a, b) => b.query.player_current - a.query.player_current); // Sorting based on current population
 
           let output = '';
-          sortedActions.slice(0, 10).forEach((action) => {
+          sortedActions.slice(0, 15).forEach((action) => {
             const { status, query, service, suspend_date } = action;
             const time = new Date(suspend_date).getTime() / 1000;
 
@@ -58,13 +58,28 @@ module.exports = {
             }
           });
 
+          const button = new ActionRowBuilder()
+            .addComponents(
+              new ButtonBuilder()
+                .setLabel('Cluster Command')
+                .setCustomId('cluster-command')
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(false),
+
+              new ButtonBuilder()
+                .setLabel('Auto Maintanance')
+                .setCustomId('auto-maintanance')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(true),
+            );
+
           const embed = new EmbedBuilder()
             .setColor('#2ecc71')
-            .setDescription(`${output}<t:${Math.floor(Date.now() / 1000)}:R>\n**[Partnership & Information](https://www.nitrado-aff.com/2M731JR/D42TT/)**\nConsider using our partnership link to purchase your personal servers to help fund our services!`)
+            .setDescription(`${output}**Cluster Player Count**\n \`🌐\` \`(0/0)\`\n\n<t:${Math.floor(Date.now() / 1000)}:R>\n**[Partnership & Information](https://www.nitrado-aff.com/2M731JR/D42TT/)**\nConsider using our partnership link to purchase your personal servers to help fund our services!`)
             .setFooter({ text: 'Tip: Contact support if there are issues.' })
             .setImage('https://i.imgur.com/2ZIHUgx.png');
 
-          await message.edit({ embeds: [embed] });
+          await message.edit({ embeds: [embed], components: [button] });
 
         } catch (error) {
           if (error.code === 50001) console.log('Missing access'), null;
