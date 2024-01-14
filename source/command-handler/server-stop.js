@@ -19,9 +19,6 @@ module.exports = {
       admin: interaction.user.id,
     };
 
-    const { identifier, guild, admin } = input;
-    const reference = (await db.collection('configuration').doc(guild).get()).data();
-
     const success = async () => {
       const embed = new EmbedBuilder()
         .setColor('#2ecc71')
@@ -42,26 +39,37 @@ module.exports = {
       return await interaction.followUp({ embeds: [embed] });
     }
 
-    const valid = async ({ service_id, query, player_current, player_max }) => {
-      const channel = await interaction.client.channels.fetch(reference.audits.server);
-
+    const log = async (channel) => {
       const embed = new EmbedBuilder()
         .setColor('#2ecc71')
-        .setDescription(`\`📄\` \`Service Stopping\`\n${query.server_name ? `${query.server_name.slice(0, 35)}` : 'Data Fetch Error - API Unsuccessful'}\nPlayer Count: \`${player_current ? player_current : '0'}/${player_max ? player_max : '0'}\`\nID: ||${service_id}||`)
+        .setDescription(`**Server Command Logging**\n\`🔄\` Stopping :: \`${input.identifier}\`\n\n**Staff Tag Information**\n${input.admin}`)
         .setFooter({ text: 'Tip: Contact support if there are issues.' })
 
-      return await channel.send({ embeds: [embed] }).then(async () => {
-        const url = `https://api.nitrado.net/services/${identifier}/gameservers/stop`;
-        const response = await axios.post(url, { message: 'Obelisk Manual Stop' }, { headers: { 'Authorization': reference.nitrado.token } });
-        response.status === 200 ? success() : failure();
-      });
+      return await channel.send({ embeds: [embed] });
     }
 
-    try {
-      const url = `https://api.nitrado.net/services/${identifier}/gameservers`;
-      const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-      response.status === 200 ? valid(response.data.data.gameserver) : failure()
+    const validService = async (nitrado, audits) => {
+      const channel = await interaction.client.channels.fetch(audits.server);
+      if (channel) { log(channel) };
 
-    } catch { failure() }
+      const url = `https://api.nitrado.net/services/${input.identifier}/gameservers/stop`;
+      const response = await axios.post(url, { message: 'Obelisk Manual Stop' }, { headers: { 'Authorization': nitrado.token } });
+      response.status === 200 ? success() : failure();
+    };
+
+    const validToken = async (nitrado, audits) => {
+      const url = 'https://api.nitrado.net/services';
+      const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
+      response.status === 200 ? validService(nitrado, audits) : invalidService()
+    };
+
+    const validDocument = async ({ nitrado, audits }) => {
+      const url = 'https://oauth.nitrado.net/token';
+      const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
+      response.status === 200 ? validToken(nitrado, audits) : console.log('Invalid token'), null;
+    };
+
+    const reference = (await db.collection('configuration').doc(input.guild).get()).data();
+    reference ? validDocument(reference) : console.log('Invalid document'), null;
   }
 };
