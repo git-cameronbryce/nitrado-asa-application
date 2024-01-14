@@ -13,7 +13,7 @@ module.exports = { db };
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 client.commands = new Collection();
 
-loadEvents(client), loadCommands(client)
+loadCommands(client), loadEvents(client)
 
 client.on('ready', () => {
   client.user.setActivity('/ commands',
@@ -21,4 +21,3 @@ client.on('ready', () => {
 });
 
 client.login(token).then(() => console.log('Client logged in...'));
-
