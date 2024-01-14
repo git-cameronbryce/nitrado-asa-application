@@ -69,11 +69,10 @@ module.exports = {
             response.status === 200 && interaction.guild.features.includes('COMMUNITY')
               ? validToken(nitrado) : invalidToken()
 
-          } catch (error) { invalidToken(), console.log(error.response.data.message) }
+          } catch (error) { invalidToken(), null; }
         }
 
         if (interaction.customId === 'base-version') {
-          console.log(interaction)
           const installation = await interaction.reply({ content: 'Installing...', ephemeral: true })
 
           const roles = await interaction.guild.roles.fetch();
@@ -93,6 +92,33 @@ module.exports = {
             id: interaction.guild.id,
             deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory],
           }];
+
+          const statistics = await interaction.guild.channels.create({
+            name: `Cluster Statistics`,
+            type: ChannelType.GuildCategory,
+            permissionOverwrites: permissions
+          });
+
+          const players = await interaction.guild.channels.create({
+            name: 'Active: 0 Players',
+            type: ChannelType.GuildVoice,
+            permissionOverwrites: permissions,
+            parent: statistics
+          });
+
+          const active = await interaction.guild.channels.create({
+            name: 'Active: 0 Servers',
+            type: ChannelType.GuildVoice,
+            permissionOverwrites: permissions,
+            parent: statistics
+          });
+
+          const outage = await interaction.guild.channels.create({
+            name: 'Outage: 0 Servers',
+            type: ChannelType.GuildVoice,
+            permissionOverwrites: permissions,
+            parent: statistics
+          });
 
           const management = await interaction.guild.channels.create({
             name: `Obelisk Management`,
@@ -134,13 +160,6 @@ module.exports = {
             parent: audits
           });
 
-          const playerCommands = await interaction.guild.channels.create({
-            name: '📄│𝗣layer-𝗖ommands',
-            type: ChannelType.GuildText,
-            permissionOverwrites: permissions,
-            parent: audits
-          });
-
           const logging = await interaction.guild.channels.create({
             name: `Obelisk Game Logging`,
             type: ChannelType.GuildCategory,
@@ -157,6 +176,13 @@ module.exports = {
           const chat = await interaction.guild.channels.create({
             name: '📑│𝗖hat-𝗟ogging',
             type: ChannelType.GuildForum,
+            permissionOverwrites: permissions,
+            parent: logging
+          });
+
+          const process = await interaction.guild.channels.create({
+            name: '🔗│𝗜nstallation',
+            type: ChannelType.GuildText,
             permissionOverwrites: permissions,
             parent: logging
           });
@@ -187,7 +213,15 @@ module.exports = {
                 .setStyle(ButtonStyle.Secondary),
             );
 
-          const embed = new EmbedBuilder()
+          let embed = new EmbedBuilder()
+            .setColor('#2ecc71')
+            .setDescription('**Logging Creation Tooling**\nFor those interested in setting up our free logging service, use the command below and enter your [service identifier](https://www.example.com/) for each gameserver. \n\n**Additional Information**\nAlthough this approach might be less automated, it guarantees proper setup and management of logging, overseen directly by the user. \n\n```/create-thread-logging :identifier```\n```/delete-thread-logging :identifier```')
+            .setFooter({ text: 'Tip: Contact support if there are issues.' })
+            .setImage('https://i.imgur.com/2ZIHUgx.png')
+
+          await process.send({ embeds: [embed] })
+
+          embed = new EmbedBuilder()
             .setColor('#2ecc71')
             .setDescription('**Remote Access Information**\nFor those interested in utilizing our remote access feature, make sure to follow the prompts and read carefully. Consider requesting support. \n\n**Remote Access Blueprinting **\nThere are two buttons: the first sends commands to the gameserver, and the second looks up item information for sending custom commands.')
             .setFooter({ text: 'Tip: Contact support if there are issues.' })
@@ -195,12 +229,13 @@ module.exports = {
 
           await remote.send({ embeds: [embed], components: [button] })
 
-          const message = await status.send({ content: 'test' });
+          const message = await status.send({ content: 'Status page initializing...' });
           await db.collection('configuration').doc(interaction.guild.id)
             .set({
-              ['audits']: { server: serverCommands.id, player: playerCommands.id, remote: remoteCommands.id },
+              ['audits']: { server: serverCommands.id, remote: remoteCommands.id },
               ['status']: { channel: status.id, message: message.id },
-              ['logging']: { admin: admin.id, chat: chat.id }
+              ['logging']: { admin: admin.id, chat: chat.id },
+              ['statistics']: { players: players.id, active: active.id, outage: outage.id },
             }, { merge: true });
 
           setTimeout(() => { }, 5000); // Add later ~
