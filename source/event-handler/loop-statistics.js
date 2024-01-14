@@ -23,7 +23,8 @@ module.exports = {
           const gameservers = responses.map(response => response.data.data.gameserver);
           gameservers.forEach(async gameserver => {
             const { status, query } = gameserver;
-            if (status === 'started') active.push(status), players += query.player_current;
+            if (status === 'started' && query.player_count > 0 && query.player_max > 0) { players += query.player_current };
+            if (status === 'started') active.push(status);
             if (status !== 'started') outage.push(status);
           });
 
