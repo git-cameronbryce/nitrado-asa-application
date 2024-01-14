@@ -34,7 +34,7 @@ module.exports = {
       const invalidService = async () => {
         const embed = new EmbedBuilder()
           .setColor('#e67e22')
-          .setDescription(`** Unauthorized Access **\nYou do not have a connected account.\nPlease authorize with your provider.\n\`/ setup - account\`\n\n**Additional Information**\nEnsure you follow setup procedures.`)
+          .setDescription(`** Unauthorized Access **\nYou do not have a connected account.\nPlease authorize with your provider.\n\`/setup -account\`\n\n**Additional Information**\nEnsure you follow setup procedures.`)
           .setFooter({ text: 'Tip: Contact support if there are issues.' })
           .setThumbnail('https://i.imgur.com/PCD2pG4.png')
 
@@ -91,11 +91,11 @@ module.exports = {
       const validDocument = async ({ nitrado, audits }) => {
         const url = 'https://oauth.nitrado.net/token';
         const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-        response.status === 200 ? validToken(nitrado, audits) : console.log('Invalid token'), null;
+        response.status === 200 ? validToken(nitrado, audits) : invalidService(), null;
       };
 
       const reference = (await db.collection('configuration').doc(input.guild).get()).data();
-      reference ? validDocument(reference) : console.log('Invalid document'), null;
+      reference ? validDocument(reference) : invalidService(), null;
     });
   }
 };
