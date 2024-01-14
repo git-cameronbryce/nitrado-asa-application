@@ -19,57 +19,70 @@ module.exports = {
       admin: interaction.user.id,
     };
 
-    const success = async () => {
-      const embed = new EmbedBuilder()
-        .setColor('#2ecc71')
-        .setDescription(`**Server Command Success**\nGameserver action complete.\nExecuted on \`1\` of \`1\` servers.`)
-        .setFooter({ text: 'Tip: Contact support if there are issues.' })
-        .setThumbnail('https://i.imgur.com/CzGfRzv.png')
+    await interaction.guild.roles.fetch().then(async roles => {
+      const role = roles.find(role => role.name === 'Obelisk Permission');
 
-      return await interaction.followUp({ embeds: [embed] });
-    }
+      if (!role || !interaction.member.roles.cache.has(role.id)) {
+        const embed = new EmbedBuilder()
+          .setColor('#e67e22')
+          .setDescription(`**Unauthorized Access**\nYou do not have the required permissions.\nPlease ask an administrator for access.\n${role}\n\n ** Additional Information **\nThe role was generated upon token setup.`)
+          .setFooter({ text: 'Tip: Contact support if there are issues.' })
 
-    const failure = async () => {
-      const embed = new EmbedBuilder()
-        .setColor('#e67e22')
-        .setDescription(`**Server Command Failure**\nExecuted on \`0\` of \`1\` servers.\nInvalid server credentials.`)
-        .setFooter({ text: 'Tip: Contact support if there are issues.' })
-        .setThumbnail('https://i.imgur.com/PCD2pG4.png')
+        return interaction.reply({ embeds: [embed], ephemeral: true });
+      };
 
-      return await interaction.followUp({ embeds: [embed] });
-    }
+      const success = async () => {
+        const embed = new EmbedBuilder()
+          .setColor('#2ecc71')
+          .setDescription(`**Server Command Success**\nGameserver action complete.\nExecuted on \`1\` of \`1\` servers.`)
+          .setFooter({ text: 'Tip: Contact support if there are issues.' })
+          .setThumbnail('https://i.imgur.com/CzGfRzv.png')
 
-    const log = async (channel) => {
-      const embed = new EmbedBuilder()
-        .setColor('#2ecc71')
-        .setDescription(`**Server Command Logging**\n\`🔄\` Stopping :: \`${input.identifier}\`\n\n**Staff Tag Information**\n${input.admin}`)
-        .setFooter({ text: 'Tip: Contact support if there are issues.' })
+        return await interaction.followUp({ embeds: [embed] });
+      }
 
-      return await channel.send({ embeds: [embed] });
-    }
+      const failure = async () => {
+        const embed = new EmbedBuilder()
+          .setColor('#e67e22')
+          .setDescription(`**Server Command Failure**\nExecuted on \`0\` of \`1\` servers.\nInvalid server credentials.`)
+          .setFooter({ text: 'Tip: Contact support if there are issues.' })
+          .setThumbnail('https://i.imgur.com/PCD2pG4.png')
 
-    const validService = async (nitrado, audits) => {
-      const channel = await interaction.client.channels.fetch(audits.server);
-      if (channel) { log(channel) };
+        return await interaction.followUp({ embeds: [embed] });
+      }
 
-      const url = `https://api.nitrado.net/services/${input.identifier}/gameservers/stop`;
-      const response = await axios.post(url, { message: 'Obelisk Manual Stop' }, { headers: { 'Authorization': nitrado.token } });
-      response.status === 200 ? success() : failure();
-    };
+      const log = async (channel) => {
+        const embed = new EmbedBuilder()
+          .setColor('#2ecc71')
+          .setDescription(`**Server Command Logging**\n\`🔄\` Stopping :: \`${input.identifier}\`\n\n**Staff Tag Information**\n${input.admin}`)
+          .setFooter({ text: 'Tip: Contact support if there are issues.' })
 
-    const validToken = async (nitrado, audits) => {
-      const url = 'https://api.nitrado.net/services';
-      const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-      response.status === 200 ? validService(nitrado, audits) : invalidService()
-    };
+        return await channel.send({ embeds: [embed] });
+      }
 
-    const validDocument = async ({ nitrado, audits }) => {
-      const url = 'https://oauth.nitrado.net/token';
-      const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-      response.status === 200 ? validToken(nitrado, audits) : console.log('Invalid token'), null;
-    };
+      const validService = async (nitrado, audits) => {
+        const channel = await interaction.client.channels.fetch(audits.server);
+        if (channel) { log(channel) };
 
-    const reference = (await db.collection('configuration').doc(input.guild).get()).data();
-    reference ? validDocument(reference) : console.log('Invalid document'), null;
+        const url = `https://api.nitrado.net/services/${input.identifier}/gameservers/stop`;
+        const response = await axios.post(url, { message: 'Obelisk Manual Stop' }, { headers: { 'Authorization': nitrado.token } });
+        response.status === 200 ? success() : failure();
+      };
+
+      const validToken = async (nitrado, audits) => {
+        const url = 'https://api.nitrado.net/services';
+        const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
+        response.status === 200 ? validService(nitrado, audits) : invalidService()
+      };
+
+      const validDocument = async ({ nitrado, audits }) => {
+        const url = 'https://oauth.nitrado.net/token';
+        const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
+        response.status === 200 ? validToken(nitrado, audits) : console.log('Invalid token'), null;
+      };
+
+      const reference = (await db.collection('configuration').doc(input.guild).get()).data();
+      reference ? validDocument(reference) : console.log('Invalid document'), null;
+    });
   }
 };

@@ -67,7 +67,7 @@ module.exports = {
             const url = 'https://oauth.nitrado.net/token';
             const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } });
             response.status === 200 && interaction.guild.features.includes('COMMUNITY')
-              ? validToken(nitrado) : invalidToken()
+              ? validToken(nitrado) : invalidToken();
 
           } catch (error) { invalidToken(), null; }
         }
@@ -79,14 +79,10 @@ module.exports = {
           const action = roles.map(async role => role.name === 'Obelisk Permission' ? await role.delete() : null);
           try { await Promise.all(action) } catch (error) { return await installation.edit({ content: 'In your settings, move the bot role above the newly generated permission role.', ephemeral: true }) };
 
-          await installation.edit({ content: 'Setting permissions...', ephemeral: true })
-
           await interaction.guild.roles.create({
             name: 'Obelisk Permission',
-            color: '#2ecc71',
+            color: '#ffffff',
           }).then(() => console.log('Role created...'));
-
-          await installation.edit({ content: 'Setting channels...', ephemeral: true })
 
           const permissions = [{
             id: interaction.guild.id,
@@ -139,6 +135,14 @@ module.exports = {
             permissionOverwrites: permissions,
             parent: management
           });
+
+          let embed = new EmbedBuilder()
+            .setColor('#2ecc71')
+            .setDescription(`**Cluster Status Installation**\nThe status page is currently being installed. \nBelow is the expected processing timer. \n\nEstimated: <t:${Math.floor(Date.now() / 1000) + 300}:R>`)
+            .setFooter({ text: 'Tip: Contact support if there are issues.' })
+            .setImage('https://i.imgur.com/2ZIHUgx.png')
+
+          const message = await status.send({ embeds: [embed] })
 
           const audits = await interaction.guild.channels.create({
             name: `Obelisk Audit Logging`,
@@ -213,13 +217,14 @@ module.exports = {
                 .setStyle(ButtonStyle.Secondary),
             );
 
-          let embed = new EmbedBuilder()
+          embed = new EmbedBuilder()
             .setColor('#2ecc71')
             .setDescription('**Logging Creation Tooling**\nFor those interested in setting up our free logging service, use the command below and enter your [service identifier](https://www.example.com/) for each gameserver. \n\n**Additional Information**\nAlthough this approach might be less automated, it guarantees proper setup and management of logging, overseen directly by the user. \n\n```/create-thread-logging :identifier```\n```/delete-thread-logging :identifier```')
             .setFooter({ text: 'Tip: Contact support if there are issues.' })
             .setImage('https://i.imgur.com/2ZIHUgx.png')
 
-          await process.send({ embeds: [embed] })
+          const update = await process.send({ embeds: [embed] });
+          await update.reply({ content: 'Disabled for 48h due to Nitrado instability.' });
 
           embed = new EmbedBuilder()
             .setColor('#2ecc71')
@@ -229,7 +234,6 @@ module.exports = {
 
           await remote.send({ embeds: [embed], components: [button] })
 
-          const message = await status.send({ content: 'Status page initializing...' });
           await db.collection('configuration').doc(interaction.guild.id)
             .set({
               ['audits']: { server: serverCommands.id, remote: remoteCommands.id },
@@ -238,9 +242,7 @@ module.exports = {
               ['statistics']: { players: players.id, active: active.id, outage: outage.id },
             }, { merge: true });
 
-          setTimeout(() => { }, 5000); // Add later ~
-          await installation.edit({ content: 'Setting additional safeguards...', ephemeral: true })
-          await installation.edit({ content: 'Installation finished!', ephemeral: true })
+          await installation.edit({ content: 'Installation finished...\nBeta version, live!', ephemeral: true })
         }
       } catch (error) { console.log(error) };
     });

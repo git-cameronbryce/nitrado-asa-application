@@ -7,7 +7,8 @@ process.on("unhandledRejection", (err) => console.error(err));
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setup-account')
-    .setDescription('Follow the onboarding process to initialize your account.'),
+    .setDescription('Follow the onboarding process to initialize your account.')
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
     const button = new ActionRowBuilder()

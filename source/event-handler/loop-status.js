@@ -14,6 +14,7 @@ module.exports = {
           const channel = await client.channels.fetch(status.channel);
           const message = await channel.messages.fetch(status.message);
 
+          let current = 0, total = 0;
           const actions = await Promise.all(
             services.map(async (service) => {
               if (platforms[service.details.folder_short]) {
@@ -21,6 +22,8 @@ module.exports = {
                 const response = await axios.get(url, { headers: { Authorization: nitrado.token } });
                 const { status, query } = response.data.data.gameserver;
                 const { suspend_date } = service;
+
+                if (status === 'started') current += query.player_current, total += query.player_max;
 
                 return { status, query, service, suspend_date };
               }
@@ -75,7 +78,7 @@ module.exports = {
 
           const embed = new EmbedBuilder()
             .setColor('#2ecc71')
-            .setDescription(`${output}**Cluster Player Count**\n \`🌐\` \`(0/0)\`\n\n<t:${Math.floor(Date.now() / 1000)}:R>\n**[Partnership & Information](https://www.nitrado-aff.com/2M731JR/D42TT/)**\nConsider using our partnership link to purchase your personal servers to help fund our services!`)
+            .setDescription(`${output}**Cluster Player Count**\n \`🌐\` \`(${current}/${total})\`\n\n<t:${Math.floor(Date.now() / 1000)}:R>\n**[Partnership & Information](https://www.nitrado-aff.com/2M731JR/D42TT/)**\nConsider using our partnership link to purchase your personal servers to help fund our services!`)
             .setFooter({ text: 'Tip: Contact support if there are issues.' })
             .setImage('https://i.imgur.com/2ZIHUgx.png');
 
@@ -89,7 +92,6 @@ module.exports = {
       const validToken = async (nitrado, status) => {
         const url = 'https://api.nitrado.net/services';
         const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-
         const services = response.data.data.services;
         response.status === 200 ? validService(nitrado, status, services) : invalidService()
       }
