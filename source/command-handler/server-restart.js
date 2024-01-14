@@ -28,10 +28,23 @@ module.exports = {
           .setDescription(`**Unauthorized Access**\nYou do not have the required permissions.\nPlease ask an administrator for access.\n${role}\n\n ** Additional Information **\nThe role was generated upon token setup.`)
           .setFooter({ text: 'Tip: Contact support if there are issues.' })
 
-        return interaction.reply({ embeds: [embed], ephemeral: true });
+        return interaction.followUp({ embeds: [embed], ephemeral: true });
       };
 
-      const success = async () => {
+      const invalidService = async () => {
+        const embed = new EmbedBuilder()
+          .setColor('#e67e22')
+          .setDescription(`** Unauthorized Access **\nYou do not have a connected account.\nPlease authorize with your provider.\n\`/ setup - account\`\n\n**Additional Information**\nEnsure you follow setup procedures.`)
+          .setFooter({ text: 'Tip: Contact support if there are issues.' })
+          .setThumbnail('https://i.imgur.com/PCD2pG4.png')
+
+        return await interaction.followUp({ embeds: [embed] });
+      };
+
+      const success = async (audits) => {
+        const channel = await interaction.client.channels.fetch(audits.server);
+        if (channel) { log(channel) };
+
         const embed = new EmbedBuilder()
           .setColor('#2ecc71')
           .setDescription(`**Server Command Success**\nGameserver action complete.\nExecuted on \`1\` of \`1\` servers.`)
@@ -39,7 +52,7 @@ module.exports = {
           .setThumbnail('https://i.imgur.com/CzGfRzv.png')
 
         return await interaction.followUp({ embeds: [embed] });
-      }
+      };
 
       const failure = async () => {
         const embed = new EmbedBuilder()
@@ -61,12 +74,12 @@ module.exports = {
       }
 
       const validService = async (nitrado, audits) => {
-        const channel = await interaction.client.channels.fetch(audits.server);
-        if (channel) { log(channel) };
 
-        const url = `https://api.nitrado.net/services/${input.identifier}/gameservers/restart`;
-        const response = await axios.post(url, { message: 'Obelisk Manual Restart' }, { headers: { 'Authorization': nitrado.token } });
-        response.status === 200 ? success() : failure();
+        try {
+          const url = `https://api.nitrado.net/services/${input.identifier}/gameservers/restart`;
+          const response = await axios.post(url, { message: 'Obelisk Manual Restart' }, { headers: { 'Authorization': nitrado.token } });
+          response.status === 200 ? success(audits) : failure();
+        } catch (error) { await interaction.followUp({ content: 'Invalid service identifier!' }) }
       };
 
       const validToken = async (nitrado, audits) => {
