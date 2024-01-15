@@ -28,9 +28,14 @@ module.exports = {
             if (status !== 'started') outage.push(status);
           });
 
-          await playerIdentifier.setName(`Active: ${players} Players`)
-          await activeIdentifier.setName(`Active: ${active.length} Servers`)
-          await outageIdentifier.setName(`Offline: ${outage.length} Servers`)
+          try {
+            await playerIdentifier.setName(`Active: ${players} Players`)
+            await activeIdentifier.setName(`Active: ${active.length} Servers`)
+            await outageIdentifier.setName(`Offline: ${outage.length} Servers`)
+          } catch (error) {
+            if (error.code === 50013) { null }
+          }
+
 
         } catch (error) { console.log('Missing statistics'), null };
       };
