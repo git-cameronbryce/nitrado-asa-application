@@ -16,7 +16,7 @@ module.exports = {
     const input = {
       identifier: interaction.options.getNumber('identifier'),
       guild: interaction.guild.id,
-      admin: interaction.user.id,
+      admin: interaction.user.id
     };
 
     await interaction.guild.roles.fetch().then(async roles => {
