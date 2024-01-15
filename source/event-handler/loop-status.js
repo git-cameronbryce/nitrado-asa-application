@@ -23,8 +23,7 @@ module.exports = {
                 const { status, query } = response.data.data.gameserver;
                 const { suspend_date } = service;
 
-                if (status === 'started' && query.player_count > 0 && query.player_max > 0) { current += query.player_current, total += query.player_max };
-
+                if (status === 'started' && query.player_current > 0 && query.player_max > 0) { current += query.player_current, total += query.player_max };
                 return { status, query, service, suspend_date };
               }
             })
