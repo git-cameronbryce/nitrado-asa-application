@@ -1,5 +1,6 @@
 const Rcon = require('rcon-client').Rcon;
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { FieldValue } = require('@google-cloud/firestore');
 const { db } = require('../script.js');
 const axios = require('axios');
 
@@ -7,18 +8,15 @@ process.on('unhandledRejection', (error) => console.error(error));
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('player-ban')
+    .setName('player-unban')
     .setDescription('Performs an in-game player action.')
-    .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true))
-    .addStringOption(option => option.setName('reason').setDescription('Required to submit ban action.').setRequired(true)
-      .addChoices({ name: 'Breaking Rules', value: 'breaking rules' }, { name: 'Cheating', value: 'cheating' }, { name: 'Behavior', value: 'behavior' }, { name: 'Meshing', value: 'meshing' }, { name: 'Other', value: 'other reasons' })),
+    .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true)),
 
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: false });
 
     const input = {
       username: interaction.options.getString('username'),
-      reason: interaction.options.getString('reason'),
       guild: interaction.guild.id,
       admin: interaction.user.id
     };
@@ -56,7 +54,7 @@ module.exports = {
             const rcon = await Rcon.connect(info);
 
             if (rcon.authenticated) { success++ };
-            await rcon.send(`BanPlayer ${input.username}`);
+            await rcon.send(`UnbanPlayer ${input.username}`);
           } catch (error) { null };
         });
 
@@ -70,7 +68,7 @@ module.exports = {
           await interaction.followUp({ embeds: [embed] });
 
           await db.collection('player-banned').doc(input.guild).set({
-            [input.username]: { admin: input.admin.id, reason: input.reason, unix: Math.floor(Date.now() / 1000) }
+            [input.username]: FieldValue.delete()
           }, { merge: true });
         });
       };

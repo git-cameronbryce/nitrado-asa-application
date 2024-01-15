@@ -7,18 +7,17 @@ process.on('unhandledRejection', (error) => console.error(error));
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('player-ban')
+    .setName('player-rename')
     .setDescription('Performs an in-game player action.')
-    .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true))
-    .addStringOption(option => option.setName('reason').setDescription('Required to submit ban action.').setRequired(true)
-      .addChoices({ name: 'Breaking Rules', value: 'breaking rules' }, { name: 'Cheating', value: 'cheating' }, { name: 'Behavior', value: 'behavior' }, { name: 'Meshing', value: 'meshing' }, { name: 'Other', value: 'other reasons' })),
+    .addStringOption(option => option.setName('current-name').setDescription('Select the users\' current in-game name.').setRequired(true))
+    .addStringOption(option => option.setName('updated-name').setDescription('Select the users\' updated in-game name.').setRequired(true)),
 
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: false });
 
     const input = {
-      username: interaction.options.getString('username'),
-      reason: interaction.options.getString('reason'),
+      current: interaction.options.getString('current-name'),
+      updated: interaction.options.getString('updated-name'),
       guild: interaction.guild.id,
       admin: interaction.user.id
     };
@@ -56,7 +55,7 @@ module.exports = {
             const rcon = await Rcon.connect(info);
 
             if (rcon.authenticated) { success++ };
-            await rcon.send(`BanPlayer ${input.username}`);
+            await rcon.send(`RenamePlayer "${input.current}" "${input.updated}"`);
           } catch (error) { null };
         });
 
@@ -68,10 +67,6 @@ module.exports = {
             .setThumbnail('https://i.imgur.com/CzGfRzv.png')
 
           await interaction.followUp({ embeds: [embed] });
-
-          await db.collection('player-banned').doc(input.guild).set({
-            [input.username]: { admin: input.admin.id, reason: input.reason, unix: Math.floor(Date.now() / 1000) }
-          }, { merge: true });
         });
       };
 
