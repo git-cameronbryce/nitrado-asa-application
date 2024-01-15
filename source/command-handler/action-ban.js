@@ -51,9 +51,12 @@ module.exports = {
             const url = `https://api.nitrado.net/services/${service.id}/gameservers`;
             const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
             const { rcon_port, ip, settings: { config: { 'current-admin-password': password } } } = response.data.data.gameserver;
-
             const info = { host: ip, port: rcon_port, password: password };
-            const rcon = await Rcon.connect(info);
+
+            const rcon = await Promise.race([
+              Rcon.connect(info),
+              new Promise((resolve, reject) => setTimeout(() => reject(service.id), 2500))
+            ]);
 
             if (rcon.authenticated) { success++ };
             await rcon.send(`BanPlayer ${input.username}`);
@@ -70,7 +73,7 @@ module.exports = {
           await interaction.followUp({ embeds: [embed] });
 
           await db.collection('player-banned').doc(input.guild).set({
-            [input.username]: { admin: input.admin.id, reason: input.reason, unix: Math.floor(Date.now() / 1000) }
+            [input.username]: { admin: input.admin, reason: input.reason, unix: Math.floor(Date.now() / 1000) }
           }, { merge: true });
         });
       };
