@@ -57,7 +57,8 @@ module.exports = {
             ]);
 
             if (rcon.authenticated) { success++ };
-            await rcon.send(`UnbanPlayer ${input.username}`);
+            await rcon.send(`UnbanPlayer ${input.username}`), await rcon.end();
+
           } catch (error) { null };
         });
 

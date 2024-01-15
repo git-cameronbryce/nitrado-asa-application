@@ -59,7 +59,8 @@ module.exports = {
             ]);
 
             if (rcon.authenticated) { success++ };
-            await rcon.send(`BanPlayer ${input.username}`);
+            await rcon.send(`BanPlayer ${input.username}`), await rcon.end();
+
           } catch (error) { null };
         });
 

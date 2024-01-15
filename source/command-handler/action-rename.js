@@ -58,7 +58,8 @@ module.exports = {
             ]);
 
             if (rcon.authenticated) { success++ };
-            await rcon.send(`RenamePlayer "${input.current}" "${input.updated}"`);
+            await rcon.send(`RenamePlayer "${input.current}" "${input.updated}"`), await rcon.end();
+
           } catch (error) { null };
         });
 
