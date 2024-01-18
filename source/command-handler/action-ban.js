@@ -1,3 +1,4 @@
+const ini = require('ini');
 const Rcon = require('rcon-client').Rcon;
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { db } = require('../script.js');
@@ -44,60 +45,92 @@ module.exports = {
         return interaction.followUp({ embeds: [embed] });
       };
 
+      // const parse = async (iniData, services, service_id, rcon_port, ip) => {
+      //   const password = iniData['ServerSettings']['ServerAdminPassword'];
+      //   const info = { host: ip, port: rcon_port, password: password };
+
+      //   const rcon = await Rcon.connect(info);
+      //   if (rcon.authenticated) { output += `🟢 ${ip} ${service_id}\n\n`, success++ }
+
+      //   const command = await rcon.send(`BanPlayer ${input.username}`);
+
+      //   await Promise.all(command).then(async () => {
+      //     const embed = new EmbedBuilder()
+      //       .setColor('#2ecc71')
+      //       .setDescription(`**Game Command Success**\nGameserver action completed.\nExecuted on \`${success}\` of \`${services.length}\` servers.`)
+      //       .setFooter({ text: 'Tip: Contact support if there are issues.' })
+      //       .setThumbnail('https://i.imgur.com/CzGfRzv.png')
+
+      //     await interaction.followUp({ embeds: [embed] })
+      //       .then(async () => {
+      //         await db.collection('player-banned').doc(input.guild).set({
+      //           [input.username]: { admin: input.admin, reason: input.reason, unix: Math.floor(Date.now() / 1000) }
+      //         }, { merge: true });
+      //       });
+      //   });
+      // };
+
       let success = 0;
-      const validService = async (nitrado, services) => {
-        const promise = await services.map(async service => {
+      const gameserver = async (reference, services) => {
+
+        const parse = async (iniData, service_id, rcon_port, ip) => {
           try {
-            const url = `https://api.nitrado.net/services/${service.id}/gameservers`;
-            const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-            const { rcon_port, ip, settings: { config: { 'current-admin-password': password } } } = response.data.data.gameserver;
+            const password = iniData['ServerSettings']['ServerAdminPassword'];
             const info = { host: ip, port: rcon_port, password: password };
 
-            const rcon = await Promise.race([
-              Rcon.connect(info),
-              new Promise((resolve, reject) => setTimeout(() => reject(service.id), 2500))
+            const rcon = await Promise.race([Rcon.connect(info),
+            new Promise((_, reject) => setTimeout(() => reject(), 2500))
             ]);
 
-            if (rcon.authenticated) { success++ };
-            await rcon.send(`BanPlayer ${input.username}`), await rcon.end();
+            if (rcon.authenticated) { success++ }
 
-          } catch (error) { null };
+            console.log(rcon.authenticated)
+            await rcon.send(`BanPlayer ${input.username}`);
+
+          } catch (error) { console.log('Authentication error.'), null };
+        };
+
+        const data = async (services, service_id, rcon_port, ip, { url }) => {
+          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
+          if (response.status === 200) {
+            await parse(ini.parse(response.data), service_id, rcon_port, ip);
+          };
+        };
+
+        const path = async ({ service_id, rcon_port, ip, username }) => {
+          const url = `https://api.nitrado.net/services/${service_id}/gameservers/file_server/download?file=/games/${username}/ftproot/arksa/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini`;
+          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
+          if (response.status === 200) {
+            await data(services, service_id, rcon_port, ip, response.data.data.token);
+          };
+        };
+
+        const tasks = services.map(async service => {
+          const url = `https://api.nitrado.net/services/${service.id}/gameservers`;
+          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
+          if (response.status === 200) {
+            await path(response.data.data.gameserver);
+          };
         });
 
-        await Promise.all(promise).then(async () => {
-          const embed = new EmbedBuilder()
-            .setColor('#2ecc71')
-            .setDescription(`**Game Command Success**\nGameserver action completed.\nExecuted on \`${success}\` of \`${services.length}\` servers.`)
-            .setFooter({ text: 'Tip: Contact support if there are issues.' })
-            .setThumbnail('https://i.imgur.com/CzGfRzv.png')
-
-          await interaction.followUp({ embeds: [embed] });
-
-          await db.collection('player-banned').doc(input.guild).set({
-            [input.username]: { admin: input.admin, reason: input.reason, unix: Math.floor(Date.now() / 1000) }
-          }, { merge: true });
-        });
+        await Promise.all(tasks)
+        console.log('ONCE')
       };
 
-      const validToken = async (nitrado) => {
-        try {
-          const url = 'https://api.nitrado.net/services';
-          const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-          response.status === 200 ? validService(nitrado, response.data.data.services) : invalidService()
-        } catch (error) { invalidService() };
-
+      const service = async (reference) => {
+        const url = 'https://api.nitrado.net/services';
+        const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
+        response.status === 200 ? gameserver(reference, response.data.data.services) : invalidService()
       };
 
-      const validDocument = async ({ nitrado }) => {
-        try {
-          const url = 'https://oauth.nitrado.net/token';
-          const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-          response.status === 200 ? validToken(nitrado) : invalidService(), null;
-        } catch (error) { invalidService() };
+      const token = async (reference) => {
+        const url = 'https://oauth.nitrado.net/token';
+        const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
+        response.status === 200 ? service(reference) : invalidService(), null;
       };
 
       const reference = (await db.collection('configuration').doc(input.guild).get()).data();
-      reference ? await validDocument(reference) : invalidService(), null;
+      reference ? await token(reference) : invalidService(), null;
     });
   }
 };
