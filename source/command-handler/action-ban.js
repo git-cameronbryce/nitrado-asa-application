@@ -48,7 +48,6 @@ module.exports = {
       let success = 0;
       let authenticated = false;
       const gameserver = async (reference, services) => {
-
         const parse = async (iniData, rcon_port, ip) => {
           try {
             const password = iniData['ServerSettings']['ServerAdminPassword'];
