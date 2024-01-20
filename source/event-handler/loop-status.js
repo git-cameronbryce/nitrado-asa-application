@@ -93,20 +93,22 @@ module.exports = {
         const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
         const services = response.data.data.services;
         response.status === 200 ? validService(nitrado, status, services) : invalidService()
-      }
+      };
 
       const validDocument = async ({ nitrado, status }) => {
-        const url = 'https://oauth.nitrado.net/token';
-        const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-        response.status === 200 ? validToken(nitrado, status) : console.log('Invalid token'), null;
-      }
+        try {
+          const url = 'https://oauth.nitrado.net/token';
+          const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
+          response.status === 200 ? validToken(nitrado, status) : console.log('Invalid token');
+        } catch (error) { null };
+      };
 
       const reference = await db.collection('configuration').get();
       reference.forEach(doc => {
         doc.data() ? validDocument(doc.data()) : console.log('Invalid document.');
       });
-      setTimeout(loop, 60000);
-    }
+      setTimeout(loop, 5000);
+    };
     loop().then(() => console.log('Loop started:'));
   },
 };

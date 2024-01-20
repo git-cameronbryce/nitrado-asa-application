@@ -48,9 +48,11 @@ module.exports = {
       }
 
       const validDocument = async ({ nitrado, statistics }) => {
-        const url = 'https://oauth.nitrado.net/token';
-        const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
-        response.status === 200 ? validToken(nitrado, statistics) : console.log('Invalid token'), null;
+        try {
+          const url = 'https://oauth.nitrado.net/token';
+          const response = await axios.get(url, { headers: { 'Authorization': nitrado.token } })
+          response.status === 200 ? validToken(nitrado, statistics) : console.log('Invalid token');
+        } catch (error) { null }
       }
 
       const reference = await db.collection('configuration').get();
