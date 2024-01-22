@@ -43,7 +43,7 @@ module.exports = {
             const embed = new EmbedBuilder()
               .setColor('#2ecc71')
               .setFooter({ text: 'Tip: Contact support if there are issues.' })
-              .setDescription(`**Pending Action Authorization**\nGrant permission to access your services.\nPerform a cluster-wide server action.\n\`🟠\` \`${services.length} Gameservers Pending\`\n\n**Additional Information**\nSelect dismiss message to return.`)
+              .setDescription(`**Pending Action Authorization**\nGrant permission to access your services.\nPerform a cluster-wide server action.\n\`🟠\` \`${services.length} Gameservers Pending\`\n\n**Additional Information**\nDelete this message to return.`)
 
             await interaction.reply({ embeds: [embed], components: [button], ephemeral: false });
           }
@@ -94,7 +94,7 @@ module.exports = {
 
           const info = await interaction.followUp({ content: 'Data Fetch Success - API Online', ephemeral: false })
           await message.edit({ embeds: [embed], components: [button] })
-            .then(() => setTimeout(() => { message.delete(); info.delete(); }, 13000));
+            .then(() => setTimeout(() => { message.delete(); info.delete(); }, 15000));
         };
 
         const validService = async (nitrado, services) => {

@@ -35,7 +35,7 @@ module.exports = {
         return interaction.followUp({ embeds: [embed], ephemeral: true });
       };
 
-      const invalidService = async () => {
+      const unauthorized = async () => {
         const embed = new EmbedBuilder()
           .setColor('#e67e22')
           .setDescription(`**Unauthorized Access**\nYou do not have a connected account.\nPlease authorize with your provider.\n\`/setup-account\`\n\n**Additional Information**\nEnsure you follow setup procedures.`)
@@ -101,20 +101,20 @@ module.exports = {
         try {
           const url = 'https://api.nitrado.net/services';
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
-          response.status === 200 ? gameserver(reference, response.data.data.services) : invalidService()
-        } catch (error) { invalidService() };
+          response.status === 200 ? gameserver(reference, response.data.data.services) : unauthorized()
+        } catch (error) { unauthorized() };
       };
 
       const token = async (reference) => {
         try {
           const url = 'https://oauth.nitrado.net/token';
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
-          response.status === 200 ? service(reference) : invalidService();
-        } catch (error) { invalidService() };
+          response.status === 200 ? service(reference) : unauthorized();
+        } catch (error) { unauthorized() };
       };
 
       const reference = (await db.collection('configuration').doc(input.guild).get()).data();
-      reference ? await token(reference) : invalidService();
+      reference ? await token(reference) : unauthorized();
     });
   }
 };

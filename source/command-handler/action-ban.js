@@ -36,7 +36,7 @@ module.exports = {
         return interaction.followUp({ embeds: [embed], ephemeral: true });
       };
 
-      const invalidService = async () => {
+      const unauthorized = async () => {
         const embed = new EmbedBuilder()
           .setColor('#e67e22')
           .setDescription(`**Unauthorized Access**\nYou do not have a connected account.\nPlease authorize with your provider.\n\`/setup-account\`\n\n**Additional Information**\nEnsure you follow setup procedures.`)
@@ -67,25 +67,19 @@ module.exports = {
 
         const data = async (rcon_port, ip, { url }) => {
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-          if (response.status === 200) {
-            await parse(ini.parse(response.data), rcon_port, ip);
-          };
+          if (response.status === 200) { await parse(ini.parse(response.data), rcon_port, ip) };
         };
 
         const path = async ({ service_id, rcon_port, ip, username }) => {
           const url = `https://api.nitrado.net/services/${service_id}/gameservers/file_server/download?file=/games/${username}/ftproot/arksa/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini`;
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-          if (response.status === 200) {
-            await data(rcon_port, ip, response.data.data.token);
-          };
+          if (response.status === 200) { await data(rcon_port, ip, response.data.data.token) };
         };
 
         const tasks = services.map(async service => {
           const url = `https://api.nitrado.net/services/${service.id}/gameservers`;
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-          if (response.status === 200) {
-            await path(response.data.data.gameserver);
-          };
+          if (response.status === 200) { await path(response.data.data.gameserver) };
         });
 
         await Promise.all(tasks).then(async () => {
@@ -111,20 +105,20 @@ module.exports = {
         try {
           const url = 'https://api.nitrado.net/services';
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
-          response.status === 200 ? gameserver(reference, response.data.data.services) : invalidService()
-        } catch (error) { invalidService() };
+          response.status === 200 ? gameserver(reference, response.data.data.services) : unauthorized()
+        } catch (error) { unauthorized() };
       };
 
       const token = async (reference) => {
         try {
           const url = 'https://oauth.nitrado.net/token';
           const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
-          response.status === 200 ? service(reference) : invalidService();
-        } catch (error) { invalidService() };
+          response.status === 200 ? service(reference) : unauthorized();
+        } catch (error) { unauthorized() };
       };
 
       const reference = (await db.collection('configuration').doc(input.guild).get()).data();
-      reference ? await token(reference) : invalidService();
+      reference ? await token(reference) : unauthorized();
     });
   }
 };
