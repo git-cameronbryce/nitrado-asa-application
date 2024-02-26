@@ -10,7 +10,7 @@ module.exports = {
 
       const validService = async (nitrado, status, services) => {
         try {
-          const platforms = { arkxb: true, arkps: true, arkse: true, arksa: true };
+          const platforms = { arksa: true };
           const channel = await client.channels.fetch(status.channel);
           const message = await channel.messages.fetch(status.message);
 
