@@ -2,17 +2,13 @@ const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { db } = require('../script.js');
 const axios = require('axios');
 
-process.on('unhandledRejection', (error) => console.error(error));
-
 const platforms = { arksa: true };
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('asa-player-ban')
+    .setName('asa-player-whitelist')
     .setDescription('Performs an in-game player action.')
-    .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true))
-    .addStringOption(option => option.setName('reason').setDescription('Required to submit ban action.').setRequired(true)
-      .addChoices({ name: 'Breaking Rules', value: 'breaking rules' }, { name: 'Cheating', value: 'cheating' }, { name: 'Behavior', value: 'behavior' }, { name: 'Meshing', value: 'meshing' }, { name: 'Other', value: 'other reasons' })),
+    .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true)),
 
   async execute(interaction) {
     await interaction.deferReply();
@@ -51,10 +47,10 @@ module.exports = {
       const gameserver = async (reference, services) => {
         const action = async (service) => {
           try {
-            const url = `https://api.nitrado.net/services/${service.id}/gameservers/games/banlist`;
+            const url = `https://api.nitrado.net/services/${service.id}/gameservers/games/whitelist`;
             const response = await axios.post(url, { identifier: input.username }, { headers: { 'Authorization': reference.nitrado.token } });
             response.status === 200 ? success++ : unauthorized();
-          } catch (error) { if (error.response.data.message === "Can't add the user to the banlist.") { success++ }; };
+          } catch (error) { if (error.response.data.message === "Can't add the user to the whitelist.") { success++ }; };
         };
 
         const filter = async (service) => {
@@ -71,24 +67,17 @@ module.exports = {
             .setThumbnail('https://i.imgur.com/CzGfRzv.png')
 
           await interaction.followUp({ embeds: [embed] })
-            .then(async () => {
-              if (success) {
-                try {
-                  const embed = new EmbedBuilder()
-                    .setColor('#2ecc71')
-                    .setFooter({ text: `Tip: Contact support if there are issues.` })
-                    .setDescription(`**Player Command Logging**\nGameserver action completed.\n\`/asa-player-ban\`\n\`${input.username}\`\n\n**ID: ${interaction.user.id}**`);
 
-                  const channel = await interaction.client.channels.fetch(reference.audits.player);
-                  await channel.send({ embeds: [embed] });
+          try {
+            const embed = new EmbedBuilder()
+              .setColor('#2ecc71')
+              .setFooter({ text: `Tip: Contact support if there are issues.` })
+              .setDescription(`**Player Command Logging**\nGameserver action completed.\n\`/ase-player-whitelist\`\n\`${input.username}\`\n\n**ID: ${interaction.user.id}**`);
 
-                } catch (error) { console.log('Missing access.') }
+            const channel = await interaction.client.channels.fetch(reference.audits.player);
+            await channel.send({ embeds: [embed] });
 
-                await db.collection('asa-player-banned').doc(input.guild).set({
-                  [input.username]: { admin: input.admin, reason: input.reason }
-                }, { merge: true });
-              };
-            });
+          } catch (error) { console.log('Missing access.') }
         });
       };
 

@@ -1,14 +1,10 @@
-const Rcon = require('rcon-client').Rcon;
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { db } = require('../script.js');
-const axios = require('axios');
-
-process.on('unhandledRejection', (error) => console.error(error));
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('player-lookup')
-    .setDescription('Performs a database player lookup.')
+    .setName('asa-player-lookup')
+    .setDescription('Performs an external player lookup.')
     .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true)),
 
   async execute(interaction) {
@@ -21,7 +17,7 @@ module.exports = {
     };
 
     await interaction.guild.roles.fetch().then(async roles => {
-      const role = roles.find(role => role.name === 'Obelisk Permission');
+      const role = roles.find(role => role.name === 'AS:A Obelisk Permission');
 
       if (!role || !interaction.member.roles.cache.has(role.id)) {
         const embed = new EmbedBuilder()
@@ -35,17 +31,17 @@ module.exports = {
       const invalidPlayer = async () => {
         const embed = new EmbedBuilder()
           .setColor('#e67e22')
-          .setDescription(`**Game Command Failure**\nSelected player not located.\nBan information isn\'t stored.`)
+          .setDescription(`**Database Command Failure**\nQueried player data not stored.\nBan information isn\'t stored.`)
           .setFooter({ text: 'Tip: Contact support if there are issues.' })
           .setThumbnail('https://i.imgur.com/PCD2pG4.png')
 
         return await interaction.followUp({ embeds: [embed] });
       }
 
-      const validPlayer = async ({ admin, reason, unix }) => {
+      const validPlayer = async ({ admin, reason }) => {
         const embed = new EmbedBuilder()
           .setColor('#2ecc71')
-          .setDescription(`**Game Command Success**\nPlayer ban information located.\nLocal data will be shown.\n\nRemoved for ${reason}.\nID: ${admin}`)
+          .setDescription(`**Database Command Success**\nPlayer information retrieved.\n\nRemoved for ${reason}.\n__ID: ${admin}__`)
           .setFooter({ text: 'Tip: Contact support if there are issues.' })
           .setThumbnail('https://i.imgur.com/CzGfRzv.png')
 
@@ -53,14 +49,15 @@ module.exports = {
         return await interaction.followUp({ embeds: [embed] });
       }
 
-      playerFound = false
-      const reference = (await db.collection('player-banned').doc(input.guild).get()).data();
-      Object.entries(reference).forEach(async ([player, doc]) => {
-        player === input.username ? validPlayer(doc) : null;
-      });
+      playerFound = false;
 
-      playerFound ? null : invalidPlayer();
-
+      try {
+        const reference = (await db.collection('asa-player-banned').doc(input.guild).get()).data();
+        Object.entries(reference).forEach(async ([player, doc]) => {
+          player === input.username ? validPlayer(doc) : null;
+        });
+      } catch (error) { null };
+      if (!playerFound) { invalidPlayer() };
     });
   }
 };

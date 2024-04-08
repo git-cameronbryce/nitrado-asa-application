@@ -1,12 +1,8 @@
 const { EmbedBuilder, SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionFlagsBits } = require('discord.js');
-const { db } = require('../script.js');
-const axios = require('axios');
-
-process.on("unhandledRejection", (err) => console.error(err));
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('setup-account')
+    .setName('asa-setup-account')
     .setDescription('Follow the onboarding process to initialize your account.')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 

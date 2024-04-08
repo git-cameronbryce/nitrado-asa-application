@@ -1,30 +1,29 @@
-const ini = require('ini');
-const Rcon = require('rcon-client').Rcon;
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { FieldValue } = require('@google-cloud/firestore');
 const { db } = require('../script.js');
 const axios = require('axios');
 
-process.on('unhandledRejection', (error) => console.error(error));
+const platforms = { arksa: true };
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('player-unban')
+    .setName('asa-player-unban')
     .setDescription('Performs an in-game player action.')
     .addStringOption(option => option.setName('username').setDescription('Selected action will be performed on given tag.').setRequired(true)),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     const input = {
       username: interaction.options.getString('username'),
-      reason: interaction.options.getString('reason'),
       guild: interaction.guild.id,
-      admin: interaction.user.id
+      admin: interaction.user.id,
     };
 
+    input.username = input.username.includes('#') ? input.username.replace('#', '') : input.username;
+
     await interaction.guild.roles.fetch().then(async roles => {
-      const role = roles.find(role => role.name === 'Obelisk Permission');
+      const role = roles.find(role => role.name === 'AS:A Obelisk Permission');
 
       if (!role || !interaction.member.roles.cache.has(role.id)) {
         const embed = new EmbedBuilder()
@@ -44,61 +43,45 @@ module.exports = {
         return interaction.followUp({ embeds: [embed] });
       };
 
-      let success = 0;
-      let authenticated = false;
+      let current = 0, success = 0;
       const gameserver = async (reference, services) => {
-        const parse = async (iniData, rcon_port, ip) => {
+        const action = async (service) => {
           try {
-            const password = iniData['ServerSettings']['ServerAdminPassword'];
-            const info = { host: ip, port: rcon_port, password: password };
-
-            const rcon = await Promise.race([Rcon.connect(info),
-            new Promise((_, reject) => setTimeout(() => reject(), 2500))
-            ]);
-
-            if (rcon.authenticated) {
-              await rcon.send(`UnbanPlayer ${input.username}`);
-              authenticated = true, success++;
-            };
-
-          } catch (error) { console.log('Authentication error.') };
+            const url = `https://api.nitrado.net/services/${service.id}/gameservers/games/banlist`;
+            const response = await axios.delete(url, { headers: { 'Authorization': reference.nitrado.token }, data: { identifier: input.username } });
+            response.status === 200 ? success++ : unauthorized();
+          } catch (error) { if (error.response.data.message === "Can't remove the user from the banlist.") { success++ }; };
         };
 
-        const data = async (rcon_port, ip, { url }) => {
-          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-          if (response.status === 200) {
-            await parse(ini.parse(response.data), rcon_port, ip);
-          };
+        const filter = async (service) => {
+          platforms[service.details.folder_short] && service.status !== 'suspended' ? (await action(service), current++) : console.log('Incompatible gameserver.')
         };
 
-        const path = async ({ service_id, rcon_port, ip, username }) => {
-          const url = `https://api.nitrado.net/services/${service_id}/gameservers/file_server/download?file=/games/${username}/ftproot/arksa/ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini`;
-          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-          if (response.status === 200) {
-            await data(rcon_port, ip, response.data.data.token);
-          };
-        };
-
-        const tasks = services.map(async service => {
-          const url = `https://api.nitrado.net/services/${service.id}/gameservers`;
-          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
-          if (response.status === 200) {
-            await path(response.data.data.gameserver);
-          };
-        });
+        const tasks = await services.map(async service => await filter(service));
 
         await Promise.all(tasks).then(async () => {
           const embed = new EmbedBuilder()
             .setColor('#2ecc71')
-            .setDescription(`**Game Command Success**\nGameserver action completed.\nExecuted on \`${success}\` of \`${tasks.length}\` servers.\n<t:${Math.floor(Date.now() / 1000)}:f>`)
+            .setDescription(`**Game Command Success**\nGameserver action completed.\nExecuted on \`${success}\` of \`${current}\` servers.`)
             .setFooter({ text: 'Tip: Contact support if there are issues.' })
             .setThumbnail('https://i.imgur.com/CzGfRzv.png')
 
           await interaction.followUp({ embeds: [embed] })
             .then(async () => {
-              if (authenticated) {
-                console.log(authenticated)
-                await db.collection('player-banned').doc(input.guild).set({
+              if (success) {
+
+                try {
+                  const embed = new EmbedBuilder()
+                    .setColor('#2ecc71')
+                    .setFooter({ text: `Tip: Contact support if there are issues.` })
+                    .setDescription(`**Player Command Logging**\nGameserver action completed.\n\`/ase-player-unban\`\n\`${input.username}\`\n\n**ID: ${interaction.user.id}**`);
+
+                  const channel = await interaction.client.channels.fetch(reference.audits.player);
+                  await channel.send({ embeds: [embed] });
+
+                } catch (error) { console.log('Missing access.') }
+
+                await db.collection('ase-player-banned').doc(input.guild).set({
                   [input.username]: FieldValue.delete()
                 }, { merge: true });
               };
@@ -109,20 +92,20 @@ module.exports = {
       const service = async (reference) => {
         try {
           const url = 'https://api.nitrado.net/services';
-          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
-          response.status === 200 ? gameserver(reference, response.data.data.services) : unauthorized()
+          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
+          response.status === 200 ? gameserver(reference, response.data.data.services) : unauthorized();
         } catch (error) { unauthorized() };
       };
 
       const token = async (reference) => {
         try {
           const url = 'https://oauth.nitrado.net/token';
-          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } })
+          const response = await axios.get(url, { headers: { 'Authorization': reference.nitrado.token } });
           response.status === 200 ? service(reference) : unauthorized();
         } catch (error) { unauthorized() };
       };
 
-      const reference = (await db.collection('configuration').doc(input.guild).get()).data();
+      const reference = (await db.collection('asa-configuration').doc(input.guild).get()).data();
       reference ? await token(reference) : unauthorized();
     });
   }
